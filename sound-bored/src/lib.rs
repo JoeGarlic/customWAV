@@ -16,10 +16,10 @@ const SPEC: WavSpec = WavSpec {
     sample_format: SampleFormat::Int,
 };
 
-pub fn join_samples_to_new_wav<P: AsRef<Path>>(
+pub fn join_samples_to_new_wav<P: AsRef<Path>, N: AsRef<str>>(
     name: &str,
     directory: P,
-    sample_names: &[&str],
+    sample_names: &[N],
 ) -> hound::Result<()> {
     let directory = directory.as_ref();
 
@@ -51,11 +51,14 @@ fn append_to_writer(writer: &mut Writer, reader: Reader) -> Result<(), hound::Er
     Ok(())
 }
 
-fn get_sample_paths<P: AsRef<Path>>(directory: P, names: &[&str]) -> Option<Vec<PathBuf>> {
+fn get_sample_paths<P: AsRef<Path>, N: AsRef<str>>(
+    directory: P,
+    names: &[N],
+) -> Option<Vec<PathBuf>> {
     names
         .iter()
         .map(|name| {
-            let file = directory.as_ref().join(name).with_extension("wav");
+            let file = directory.as_ref().join(name.as_ref()).with_extension("wav");
             if file.exists() && file.is_file() {
                 return Some(file);
             }
