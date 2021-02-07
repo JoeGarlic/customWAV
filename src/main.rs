@@ -1,4 +1,4 @@
-use std::io::stdin;
+use std::io::{self, stdin, Write };
 use std::path::PathBuf;
 
 use clap::Clap;
@@ -32,30 +32,36 @@ fn main() {
         let stdin = stdin();
 
         print!("Samples Directory: ");
+        io::stdout().flush().unwrap();
         if let Err(e) = stdin.read_line(&mut directory) {
             eprintln!(
                 "Failed to read directory input. The following error was produced:\n{}",
                 e
             );
+            io::stdout().flush().unwrap();
             std::process::exit(1);
         }
 
         print!("Samples to join (extension optional): ");
+        io::stdout().flush().unwrap();
         if let Err(e) = stdin.read_line(&mut samples) {
             eprintln!(
                 "Failed to read samples input. The following error was produced:\n{}",
                 e
             );
+            io::stdout().flush().unwrap();
             std::process::exit(1);
         }
         let samples: Vec<&str> = samples.split_whitespace().collect();
 
         print!("Output file name (extension optional): ");
+        io::stdout().flush().unwrap();
         if let Err(e) = stdin.read_line(&mut output) {
             eprintln!(
                 "Failed to read output file input. The following error was produced:\n{}",
                 e
             );
+            io::stdout().flush().unwrap();
             std::process::exit(1);
         }
 
@@ -74,14 +80,22 @@ fn handle_error(e: sound_bored::SBResult) {
             match e {
                 sound_bored::Error::NoSamples => {
                     eprintln!("No samples were input");
+                    io::stdout().flush().unwrap();
                     std::process::exit(1);
                 }
                 sound_bored::Error::DirNotFound(d) => {
-                    eprintln!("Directory not found: {}", d.to_str().unwrap_or(""));
+                    eprintln!("Directory not found: {}", d.to_string_lossy());
+                    io::stdout().flush().unwrap();
                     std::process::exit(1);
                 }
                 sound_bored::Error::HoundError(e) => {
                     eprintln!("Encoding/Decoding Error: {}", e);
+                    io::stdout().flush().unwrap();
+                    std::process::exit(1);
+                }
+                sound_bored::Error::FileNotFound(f) => {
+                    eprintln!("Could not find file as .wav or .mp3: {}", f.to_string_lossy());
+                    io::stdout().flush().unwrap();
                     std::process::exit(1);
                 }
             }

@@ -23,9 +23,9 @@ fn invalid_directory_returns_error() {
     match res {
         Ok(()) => panic!("Should have returned an Error"),
         Err(e) => match e {
-            sound_bored::Error::HoundError(_) => panic!("Incorrect error type"),
-            sound_bored::Error::NoSamples => panic!("Incorrect Error Type"),
             sound_bored::Error::DirNotFound(t) => assert_eq!(t, std::path::PathBuf::from("does/not/exist")),
+            _ => panic!("Incorrect Error Type"),
+
         },
     }
 }
@@ -37,9 +37,8 @@ fn no_samples_input_returns_error() {
     match res {
         Ok(()) => panic!("Should have returned an Error"),
         Err(e) => match e {
-            sound_bored::Error::HoundError(_) => panic!("Incorrect error type"),
-            sound_bored::Error::DirNotFound(_) => panic!("Incorrect Error Type"),
             sound_bored::Error::NoSamples => (),
+            _ => panic!("Incorrect error type")
         },
     }
 }
@@ -59,3 +58,17 @@ fn generated_file_is_always_the_same() {
 
     assert_eq!(new_hash, good_hash);
 }
+
+#[test]
+fn find_file_with_extension_works() {
+    let p = std::path::PathBuf::from("tests/samples/mp3/test.wav");
+    assert_eq!(p.extension().unwrap(), "wav");
+    assert!(!p.exists());
+}
+
+#[test]
+fn join_with_mp3_works() {
+    let res = sound_bored::join_samples_to_new_wav("out", "tests/samples/mp3", &["test"]);
+    res.expect("Join with mp3 failed");
+}
+

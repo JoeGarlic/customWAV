@@ -9,6 +9,7 @@ edition = "2018"
 [dependencies]
 clap = { git = "https://github.com/clap-rs/clap/" }
 hound = "3.4.0"
+puremp3 = "0.1.0"
 
 [dev-dependencies]
 md5 = "0.7.0"
