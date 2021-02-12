@@ -1,10 +1,8 @@
-use std::io::stdin;
+use std::io::{self, stdin, Write};
 use std::path::PathBuf;
 
 use clap::Clap;
-use sound_bored::join_samples_to_new_wav;
-
-//mod args;
+use sound_bored;
 
 #[derive(Clap, Debug)]
 #[clap(
@@ -32,37 +30,43 @@ fn main() {
         let stdin = stdin();
 
         print!("Samples Directory: ");
+        io::stdout().flush().unwrap();
         if let Err(e) = stdin.read_line(&mut directory) {
             eprintln!(
                 "Failed to read directory input. The following error was produced:\n{}",
                 e
             );
+            io::stdout().flush().unwrap();
             std::process::exit(1);
         }
 
         print!("Samples to join (extension optional): ");
+        io::stdout().flush().unwrap();
         if let Err(e) = stdin.read_line(&mut samples) {
             eprintln!(
                 "Failed to read samples input. The following error was produced:\n{}",
                 e
             );
+            io::stdout().flush().unwrap();
             std::process::exit(1);
         }
         let samples: Vec<&str> = samples.split_whitespace().collect();
 
         print!("Output file name (extension optional): ");
+        io::stdout().flush().unwrap();
         if let Err(e) = stdin.read_line(&mut output) {
             eprintln!(
                 "Failed to read output file input. The following error was produced:\n{}",
                 e
             );
+            io::stdout().flush().unwrap();
             std::process::exit(1);
         }
 
-        let res = join_samples_to_new_wav(&output, &directory, &samples);
+        let res = sound_bored::join_samples_to_new_wav(&output, &directory, &samples, 44100);
         handle_error(res);
     } else {
-        let res = join_samples_to_new_wav(&args.output, &args.sample_directory, &args.samples);
+        let res = sound_bored::join_samples_to_new_wav(&args.output, &args.sample_directory, &args.samples, 44100);
         handle_error(res);
     }
 }
@@ -74,14 +78,27 @@ fn handle_error(e: sound_bored::SBResult) {
             match e {
                 sound_bored::Error::NoSamples => {
                     eprintln!("No samples were input");
+                    io::stdout().flush().unwrap();
                     std::process::exit(1);
                 }
-                sound_bored::Error::DirNotFound(d) => {
-                    eprintln!("Directory not found: {}", d.to_str().unwrap_or(""));
+                sound_bored::Error::DirectoryNotFound(d) => {
+                    eprintln!("Directory not found: {}\nCurrent Directory: {}", d.to_string_lossy(), std::env::current_dir().unwrap().to_string_lossy());
+                    io::stdout().flush().unwrap();
                     std::process::exit(1);
                 }
-                sound_bored::Error::HoundError(e) => {
-                    eprintln!("Encoding/Decoding Error: {}", e);
+                sound_bored::Error::HoundErr(e) => {
+                    eprintln!("Encoding Error: {}", e);
+                    io::stdout().flush().unwrap();
+                    std::process::exit(1);
+                }
+                sound_bored::Error::FileNotFound(dir, name) => {
+                    eprintln!("Could not find mp3 or wav file named {} in directory {}", name, dir.to_string_lossy());
+                    io::stdout().flush().unwrap();
+                    std::process::exit(1);
+                }
+                sound_bored::Error::CreakErr(e) => {
+                    eprintln!("Decoding Error: {}", e);
+                    io::stdout().flush().unwrap();
                     std::process::exit(1);
                 }
             }

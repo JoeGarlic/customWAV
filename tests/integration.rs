@@ -1,61 +1,153 @@
+use creak;
 use sound_bored;
+use tempfile;
 
-#[test]
-fn the_fuck_works() {
-    let res =
-        sound_bored::join_samples_to_new_wav("the_fuck", "tests/samples", &vec!["the", "fuck"]);
-    assert!(res.is_ok());
-}
+mod common;
+mod memory_buffer;
 
-#[test]
-fn and_fuck_the() {
-    let res = sound_bored::join_samples_to_new_wav(
-        "and_fuck_the",
-        "tests/samples",
-        &vec!["and", "fuck", "the"],
+fn fuzzy_assert(value: usize, target: usize, alpha: usize) {
+    eprintln!(
+        "Value: {}, Acceptable Range: {} +/- {}",
+        value, target, alpha
     );
-    assert!(res.is_ok());
+    assert!(
+        target - alpha <= value && value <= target + alpha,
+        "Value outside of acceptable range"
+    );
 }
 
 #[test]
-fn invalid_directory_returns_error() {
-    let res = sound_bored::join_samples_to_new_wav("test", "does/not/exist", &["hi"]);
-    match res {
-        Ok(()) => panic!("Should have returned an Error"),
-        Err(e) => match e {
-            sound_bored::Error::HoundError(_) => panic!("Incorrect error type"),
-            sound_bored::Error::NoSamples => panic!("Incorrect Error Type"),
-            sound_bored::Error::DirNotFound(t) => assert_eq!(t, std::path::PathBuf::from("does/not/exist")),
-        },
+fn join_one_wav() {
+    let first_wav_file = common::new_wav_file();
+
+    let paths = vec![first_wav_file.path()];
+    let joined = sound_bored::join_files(&paths, 8000).unwrap();
+
+    fuzzy_assert(joined.count(), common::samples_per_expected_wav_file(), 1);
+}
+
+#[test]
+fn join_two_wavs() {
+    let first_wav_file = common::new_wav_file();
+    let second_wav_file = common::new_wav_file();
+
+    let paths = vec![first_wav_file.path(), second_wav_file.path()];
+    let joined = sound_bored::join_files(&paths, 8000).unwrap();
+
+    fuzzy_assert(
+        joined.count(),
+        common::samples_per_expected_wav_file() * 2,
+        2,
+    );
+}
+
+#[test]
+fn join_three_wavs() {
+    let first_wav_file = common::new_wav_file();
+    let second_wav_file = common::new_wav_file();
+    let third_wav_file = common::new_wav_file();
+
+    let paths = vec![
+        first_wav_file.path(),
+        second_wav_file.path(),
+        third_wav_file.path(),
+    ];
+    let joined = sound_bored::join_files(&paths, 8000).unwrap();
+
+    fuzzy_assert(
+        joined.count(),
+        common::samples_per_expected_wav_file() * 3,
+        3,
+    );
+}
+
+#[test]
+fn join_one_mp3() {
+    let mp3_file = common::new_mp3_file();
+    let paths = vec![mp3_file.path()];
+    let joined = sound_bored::join_files(&paths, 8000).unwrap();
+
+    fuzzy_assert(joined.count(), common::samples_per_expected_mp3_file(), 1);
+}
+
+#[test]
+fn join_two_mp3() {
+    let first_mp3_file = common::new_mp3_file();
+    let second_mp3_file = common::new_mp3_file();
+    let paths = vec![first_mp3_file.path(), second_mp3_file.path()];
+    let joined = sound_bored::join_files(&paths, 8000).unwrap();
+
+    fuzzy_assert(
+        joined.count(),
+        common::samples_per_expected_mp3_file() * 2,
+        2,
+    );
+}
+
+#[test]
+fn join_mp3_and_wav() {
+    let mp3 = common::new_mp3_file();
+    let wav = common::new_wav_file();
+    let paths = vec![mp3.path(), wav.path()];
+    let joined = sound_bored::join_files(&paths, 8000).unwrap();
+
+    fuzzy_assert(
+        joined.count(),
+        common::samples_per_expected_mp3_file() + common::samples_per_expected_wav_file(),
+        2,
+    );
+}
+
+#[test]
+fn double_sample_rate() {
+    let wav = common::new_wav_file();
+    let paths = vec![wav.path()];
+    let joined = sound_bored::join_files(&paths, 16000).unwrap();
+
+    fuzzy_assert(
+        joined.count(),
+        common::samples_per_expected_wav_file() * 2,
+        2,
+    );
+}
+
+#[test]
+#[ignore]
+fn write_join_mp3_and_wav() {
+    let mp3 = common::new_mp3_file();
+    let wav = common::new_wav_file();
+    let paths = vec![mp3.path(), wav.path()];
+    let joined = sound_bored::join_files(&paths, 8000).unwrap();
+
+    let mut writer = hound::WavWriter::create("tests/out/out.wav", common::SPEC_8K_RATE).unwrap();
+    for sample in joined {
+        writer.write_sample(sample).unwrap();
     }
 }
 
 #[test]
-fn no_samples_input_returns_error() {
-    let empty: &[&str] = &[];
-    let res = sound_bored::join_samples_to_new_wav("test", "tests/samples", empty);
-    match res {
-        Ok(()) => panic!("Should have returned an Error"),
-        Err(e) => match e {
-            sound_bored::Error::HoundError(_) => panic!("Incorrect error type"),
-            sound_bored::Error::DirNotFound(_) => panic!("Incorrect Error Type"),
-            sound_bored::Error::NoSamples => (),
-        },
-    }
+#[ignore]
+fn write_test_mp3_samples() {
+    use std::fs::File;
+    use std::io::Write;
+
+    let dec = creak::Decoder::open("tests/res/test.mp3").unwrap();
+    let samples: Vec<f32> = dec.into_samples().unwrap().map(|s| s.unwrap()).collect();
+    let samples = serde_json::to_string(&samples).unwrap();
+
+    let mut f = File::create("tests/res/test_mp3_samples.serde").unwrap();
+    f.write(samples.as_bytes()).unwrap();
 }
 
 #[test]
-fn generated_file_is_always_the_same() {
-    let new_audio_filename = "tests/samples/cross_check_hasher.wav";
-    let known_good_filename = "tests/samples/hasher_base.wav";
+#[ignore]
+fn write_fuck_wav() {
+    let samples = sound_bored::join_files(&["tests/res/fuck.wav"], 44100).unwrap();
 
-    sound_bored::join_samples_to_new_wav("cross_check_hasher", "tests/samples/", &vec!["fuck"]).unwrap();
+    let mut writer = hound::WavWriter::create("tests/out/out.wav", common::SPEC_441K_RATE).unwrap();
+    for sample in samples {
+        writer.write_sample(sample).unwrap();
+    }
 
-    let new = std::fs::read(new_audio_filename).unwrap();
-    let good = std::fs::read(known_good_filename).unwrap();
-
-    let new_hash = md5::compute(new);
-    let good_hash = md5::compute(good);
-
-    assert_eq!(new_hash, good_hash);
+    assert!(false);
 }
