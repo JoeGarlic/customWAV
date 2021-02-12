@@ -38,6 +38,7 @@ fn decode_samples<'a, P: AsRef<Path>>(
     let mut samples = Vec::new();
 
     let channels = info.channels();
+
     let mut v = 0.0;
     let mut counter = None;
     for sample in decoder.into_samples()? {
@@ -46,17 +47,15 @@ fn decode_samples<'a, P: AsRef<Path>>(
         if let Some(counter) = counter {
             if counter == 0 {
                 samples.push(v);
-            } else {
-                v += sample;
+                v = 0.0;
             }
+            v += sample;
         } else {
             v += sample;
             counter = Some(0);
         }
         counter = counter.map(|c| (c + 1) % channels)
     }
-
-    dbg!(&info);
 
     let mut signal = signal::from_iter(samples);
     let interp = Linear::new(signal.next(), signal.next());
@@ -148,7 +147,6 @@ pub fn get_audio_file_paths<P: AsRef<Path>, S: AsRef<str>>(
 mod tests {
     use super::*;
     use std::fs::File;
-    use tempfile;
 
     #[test]
     fn it_should_get_a_wav_file() {
@@ -223,4 +221,16 @@ mod tests {
             _ => panic!("Expected DirectoryNotFound Error"),
         }
     }
+
+    //#[test]
+    //fn it_should_not_convert_single_channel() {
+    //    let samples = 1..=10; //1 2 3 4 5 6 7 8 9 10
+
+    //    let converted = convert_to_mono_channel_signal(samples.clone(), 1);
+
+    //    let samples: Vec<i32> = samples.collect();
+    //    let converted: Vec<i32> = converted.collect();
+    //    assert_eq!(converted, samples);
+    //}
+
 }

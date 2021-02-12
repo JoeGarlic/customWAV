@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.0.3]
+### Bugfix
+Mp3 channel conversion now works as expected, Whoops :)
+
 ## [0.0.2]
 ### Added
 MP3 support
