@@ -1,9 +1,7 @@
 use creak;
 use sound_bored;
-use tempfile;
 
 mod common;
-mod memory_buffer;
 
 fn fuzzy_assert(value: usize, target: usize, alpha: usize) {
     eprintln!(
@@ -23,7 +21,7 @@ fn join_one_wav() {
     let paths = vec![first_wav_file.path()];
     let joined = sound_bored::join_files(&paths, 8000).unwrap();
 
-    fuzzy_assert(joined.count(), common::samples_per_expected_wav_file(), 1);
+    fuzzy_assert(joined.count(), common::samples_per_expected_wav_file(), 2);
 }
 
 #[test]
@@ -37,7 +35,7 @@ fn join_two_wavs() {
     fuzzy_assert(
         joined.count(),
         common::samples_per_expected_wav_file() * 2,
-        2,
+        4,
     );
 }
 
@@ -57,7 +55,7 @@ fn join_three_wavs() {
     fuzzy_assert(
         joined.count(),
         common::samples_per_expected_wav_file() * 3,
-        3,
+        6,
     );
 }
 
@@ -67,7 +65,7 @@ fn join_one_mp3() {
     let paths = vec![mp3_file.path()];
     let joined = sound_bored::join_files(&paths, 8000).unwrap();
 
-    fuzzy_assert(joined.count(), common::samples_per_expected_mp3_file(), 1);
+    fuzzy_assert(joined.count(), common::samples_per_expected_mp3_file(), 2);
 }
 
 #[test]
@@ -80,7 +78,7 @@ fn join_two_mp3() {
     fuzzy_assert(
         joined.count(),
         common::samples_per_expected_mp3_file() * 2,
-        2,
+        4,
     );
 }
 
@@ -94,7 +92,7 @@ fn join_mp3_and_wav() {
     fuzzy_assert(
         joined.count(),
         common::samples_per_expected_mp3_file() + common::samples_per_expected_wav_file(),
-        2,
+        4,
     );
 }
 
@@ -107,7 +105,7 @@ fn double_sample_rate() {
     fuzzy_assert(
         joined.count(),
         common::samples_per_expected_wav_file() * 2,
-        2,
+        4,
     );
 }
 
