@@ -7,7 +7,7 @@ use sound_bored;
 #[derive(Clap, Debug)]
 #[clap(
     author = "Garlic <github@JoeGarlic>, Dabrick <github@dmaahs2017>",
-    version = "0.0.1",
+    version = "0.0.3",
     about = "sound-bored is a meme, that helps you make audio memes on demand"
 )]
 struct Args {
