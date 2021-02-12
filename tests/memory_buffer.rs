@@ -1,4 +1,4 @@
-use std::io::{self, Read, Write, Cursor, Seek};
+use std::io::{self, Cursor, Read, Seek, Write};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct MemoryByteBuffer {
@@ -42,10 +42,11 @@ mod tests {
     #[test]
     fn new() {
         let mut buffer = MemoryByteBuffer::new();
-        let mut bytes = Vec::new();
+        let mut bytes: Vec<u8> = Vec::new();
         buffer.read(&mut bytes).unwrap();
         assert_eq!(buffer.data.position(), 0);
-        assert_eq!(bytes, vec![]);
+        let empty: Vec<u8> = vec![];
+        assert_eq!(bytes, empty);
     }
 
     #[test]
@@ -72,7 +73,6 @@ mod tests {
         let n = buffer.read(&mut vec).unwrap();
         assert_eq!(buffer.data.position(), 0);
         assert_eq!(n, 0);
-
     }
     #[test]
     fn read_should_read_4_bytes() {

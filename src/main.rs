@@ -1,10 +1,8 @@
-use std::io::{self, stdin, Write };
+use std::io::{self, stdin, Write};
 use std::path::PathBuf;
 
 use clap::Clap;
-use sound_bored::join_samples_to_new_wav;
-
-//mod args;
+use sound_bored;
 
 #[derive(Clap, Debug)]
 #[clap(
@@ -65,10 +63,10 @@ fn main() {
             std::process::exit(1);
         }
 
-        let res = join_samples_to_new_wav(&output, &directory, &samples);
+        let res = sound_bored::join_samples_to_new_wav(&output, &directory, &samples, 44100);
         handle_error(res);
     } else {
-        let res = join_samples_to_new_wav(&args.output, &args.sample_directory, &args.samples);
+        let res = sound_bored::join_samples_to_new_wav(&args.output, &args.sample_directory, &args.samples, 44100);
         handle_error(res);
     }
 }
@@ -83,18 +81,23 @@ fn handle_error(e: sound_bored::SBResult) {
                     io::stdout().flush().unwrap();
                     std::process::exit(1);
                 }
-                sound_bored::Error::DirNotFound(d) => {
-                    eprintln!("Directory not found: {}", d.to_string_lossy());
+                sound_bored::Error::DirectoryNotFound(d) => {
+                    eprintln!("Directory not found: {}\nCurrent Directory: {}", d.to_string_lossy(), std::env::current_dir().unwrap().to_string_lossy());
                     io::stdout().flush().unwrap();
                     std::process::exit(1);
                 }
-                sound_bored::Error::HoundError(e) => {
-                    eprintln!("Encoding/Decoding Error: {}", e);
+                sound_bored::Error::HoundErr(e) => {
+                    eprintln!("Encoding Error: {}", e);
                     io::stdout().flush().unwrap();
                     std::process::exit(1);
                 }
-                sound_bored::Error::FileNotFound(f) => {
-                    eprintln!("Could not find file as .wav or .mp3: {}", f.to_string_lossy());
+                sound_bored::Error::FileNotFound(dir, name) => {
+                    eprintln!("Could not find mp3 or wav file named {} in directory {}", name, dir.to_string_lossy());
+                    io::stdout().flush().unwrap();
+                    std::process::exit(1);
+                }
+                sound_bored::Error::CreakErr(e) => {
+                    eprintln!("Decoding Error: {}", e);
                     io::stdout().flush().unwrap();
                     std::process::exit(1);
                 }
