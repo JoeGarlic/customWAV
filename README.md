@@ -20,3 +20,5 @@ My friends record audio samples of words/sounds to create sentences and play it 
 Just download one of the latest version binaries for your platform on the [releases page](https://github.com/dmaahs2017/sound-bored/releases)
 
 Then place it in the directory you would like to use it, or add it to your `$PATH`. (Yay for static binaries)
+
+Or clone this repository and compile from source for the most up to date version using `cargo build --release`, see [installing rust](https://www.rust-lang.org/tools/install).
