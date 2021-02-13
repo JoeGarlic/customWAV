@@ -2,7 +2,6 @@ use std::io::{self, stdin, Write};
 use std::path::PathBuf;
 
 use clap::Clap;
-use sound_bored;
 
 #[derive(Clap, Debug)]
 #[clap(
@@ -66,7 +65,12 @@ fn main() {
         let res = sound_bored::join_samples_to_new_wav(&output, &directory, &samples, 44100);
         handle_error(res);
     } else {
-        let res = sound_bored::join_samples_to_new_wav(&args.output, &args.sample_directory, &args.samples, 44100);
+        let res = sound_bored::join_samples_to_new_wav(
+            &args.output,
+            &args.sample_directory,
+            &args.samples,
+            44100,
+        );
         handle_error(res);
     }
 }
@@ -74,34 +78,49 @@ fn main() {
 fn handle_error(e: sound_bored::SBResult) {
     match e {
         Ok(()) => (),
-        Err(e) => {
-            match e {
-                sound_bored::Error::NoSamples => {
-                    eprintln!("No samples were input");
-                    io::stdout().flush().unwrap();
-                    std::process::exit(1);
-                }
-                sound_bored::Error::DirectoryNotFound(d) => {
-                    eprintln!("Directory not found: {}\nCurrent Directory: {}", d.to_string_lossy(), std::env::current_dir().unwrap().to_string_lossy());
-                    io::stdout().flush().unwrap();
-                    std::process::exit(1);
-                }
-                sound_bored::Error::HoundErr(e) => {
-                    eprintln!("Encoding Error: {}", e);
-                    io::stdout().flush().unwrap();
-                    std::process::exit(1);
-                }
-                sound_bored::Error::FileNotFound(dir, name) => {
-                    eprintln!("Could not find mp3 or wav file named {} in directory {}", name, dir.to_string_lossy());
-                    io::stdout().flush().unwrap();
-                    std::process::exit(1);
-                }
-                sound_bored::Error::CreakErr(e) => {
-                    eprintln!("Decoding Error: {}", e);
-                    io::stdout().flush().unwrap();
-                    std::process::exit(1);
-                }
+        Err(e) => match e {
+            sound_bored::Error::NoSamples => {
+                eprintln!("No samples were input");
+                io::stdout().flush().unwrap();
+                std::process::exit(1);
             }
-        }
+            sound_bored::Error::DirectoryNotFound(d) => {
+                eprintln!(
+                    "Directory not found: {}\nCurrent Directory: {}",
+                    d.to_string_lossy(),
+                    std::env::current_dir().unwrap().to_string_lossy()
+                );
+                io::stdout().flush().unwrap();
+                std::process::exit(1);
+            }
+            sound_bored::Error::HoundErr(e) => {
+                eprintln!("Encoding Error: {}", e);
+                io::stdout().flush().unwrap();
+                std::process::exit(1);
+            }
+            sound_bored::Error::FileNotFound(dir, name) => {
+                eprintln!(
+                    "Could not find mp3 or wav file named {} in directory {}",
+                    name,
+                    dir.to_string_lossy()
+                );
+                io::stdout().flush().unwrap();
+                std::process::exit(1);
+            }
+            sound_bored::Error::CreakErr(e) => {
+                eprintln!("Decoding Error: {}", e);
+                io::stdout().flush().unwrap();
+                std::process::exit(1);
+            }
+            sound_bored::Error::ChannelCoversionError(source, target) => {
+                eprintln!(
+                    "Failed converting channel data from {} channels to {} channels",
+                    source.to_string(),
+                    target.to_string()
+                );
+                io::stdout().flush().unwrap();
+                std::process::exit(1);
+            }
+        },
     }
 }

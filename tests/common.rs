@@ -1,6 +1,3 @@
-use hound;
-use tempfile;
-
 #[allow(dead_code)]
 pub const SPEC_8K_RATE: hound::WavSpec = hound::WavSpec {
     bits_per_sample: 32,
