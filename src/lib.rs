@@ -1,68 +1,12 @@
 use std::path::{Path, PathBuf};
 
-use creak;
-use dasp::interpolate::linear::Linear;
-use dasp::signal::{self, Signal};
 use hound;
 
-#[derive(Debug)]
-pub enum Error {
-    FileNotFound(PathBuf, String),
-    DirectoryNotFound(PathBuf),
-    CreakErr(creak::DecoderError),
-    HoundErr(hound::Error),
-    NoSamples,
-}
+mod audio;
+mod error;
 
-impl std::convert::From<hound::Error> for Error {
-    fn from(error: hound::Error) -> Self {
-        Error::HoundErr(error)
-    }
-}
-
-impl std::convert::From<creak::DecoderError> for Error {
-    fn from(error: creak::DecoderError) -> Self {
-        Error::CreakErr(error)
-    }
-}
-
-pub type SBResult<T = ()> = Result<T, Error>;
-
-fn decode_samples<'a, P: AsRef<Path>>(
-    path: P,
-    target_sample_rate: u32,
-) -> SBResult<impl Iterator<Item = f32> + 'a> {
-    let decoder = creak::Decoder::open(path)?;
-
-    let info = decoder.info();
-    let mut samples = Vec::new();
-
-    let channels = info.channels();
-
-    let mut v = 0.0;
-    let mut counter = None;
-    for sample in decoder.into_samples()? {
-        let sample = sample?;
-
-        if let Some(counter) = counter {
-            if counter == 0 {
-                samples.push(v);
-                v = 0.0;
-            }
-            v += sample;
-        } else {
-            v += sample;
-            counter = Some(0);
-        }
-        counter = counter.map(|c| (c + 1) % channels)
-    }
-
-    let mut signal = signal::from_iter(samples);
-    let interp = Linear::new(signal.next(), signal.next());
-    let signal = signal.from_hz_to_hz(interp, info.sample_rate() as f64, target_sample_rate as f64);
-
-    Ok(signal.until_exhausted())
-}
+use crate::audio::*;
+pub use crate::error::{Error, SBResult};
 
 pub fn join_files<P: AsRef<Path>>(
     paths: &[P],
@@ -188,7 +132,7 @@ mod tests {
         File::create(dir.path().join("test.mp3")).unwrap();
         File::create(dir.path().join("test.wav")).unwrap();
 
-        let paths = get_audio_file_paths(dir.path(), &vec!["test"]).unwrap();
+        let paths = get_audio_file_paths(dir.path(), &["test"]).unwrap();
 
         assert_eq!(paths, &[dir.path().join("test.wav")]);
     }
@@ -197,7 +141,7 @@ mod tests {
     fn it_should_error_with_file_not_found() {
         let dir = tempfile::tempdir().unwrap();
 
-        let res = get_audio_file_paths(dir.path(), &vec!["test"]);
+        let res = get_audio_file_paths(dir.path(), &["test"]);
 
         match res.expect_err("Expected an error") {
             Error::FileNotFound(directory, name) => assert_eq!(
@@ -214,23 +158,11 @@ mod tests {
         let path = dir.path().to_path_buf();
         drop(dir);
 
-        let res = get_audio_file_paths(&path, &vec!["test"]);
+        let res = get_audio_file_paths(&path, &["test"]);
 
         match res.expect_err("Expected an error") {
             Error::DirectoryNotFound(p) => assert_eq!(p, path),
             _ => panic!("Expected DirectoryNotFound Error"),
         }
     }
-
-    //#[test]
-    //fn it_should_not_convert_single_channel() {
-    //    let samples = 1..=10; //1 2 3 4 5 6 7 8 9 10
-
-    //    let converted = convert_to_mono_channel_signal(samples.clone(), 1);
-
-    //    let samples: Vec<i32> = samples.collect();
-    //    let converted: Vec<i32> = converted.collect();
-    //    assert_eq!(converted, samples);
-    //}
-
 }

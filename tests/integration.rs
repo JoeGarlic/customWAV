@@ -134,7 +134,8 @@ fn write_test_mp3_samples() {
     let samples = serde_json::to_string(&samples).unwrap();
 
     let mut f = File::create("tests/res/test_mp3_samples.serde").unwrap();
-    f.write(samples.as_bytes()).unwrap();
+    let bytes = f.write(samples.as_bytes()).unwrap();
+    assert!(bytes > 0);
 }
 
 #[test]
@@ -146,6 +147,4 @@ fn write_fuck_wav() {
     for sample in samples {
         writer.write_sample(sample).unwrap();
     }
-
-    assert!(false);
 }
